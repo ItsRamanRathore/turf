@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Turf Booking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="admin-panel.css">
+</head>
+<body>
+    <div class="admin-header">
+        <div class="admin-nav">
+            <h2>🏟️ Admin Panel</h2>
+            <div class="admin-actions">
+                <button class="btn btn-secondary" id="changeAdminPasswordBtn">
+                    🔑 Change Password
+                </button>
+                <button class="btn btn-logout" id="logoutBtn">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-content">
+        <!-- Statistics -->
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Turfs</h3>
+                <div class="number" id="totalTurfs">0</div>
+                <div class="label">Registered venues</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Bookings</h3>
+                <div class="number" id="totalBookings">0</div>
+                <div class="label">All time bookings</div>
+            </div>
+            <div class="stat-card">
+                <h3>Revenue (Today)</h3>
+                <div class="number">₹<span id="todayRevenue">0</span></div>
+                <div class="label">Today's earnings</div>
+            </div>
+            <div class="stat-card">
+                <h3>Active Users</h3>
+                <div class="number" id="activeUsers">0</div>
+                <div class="label">Registered customers</div>
+            </div>
+        </div>
+
+        <!-- Turfs Management -->
+        <div class="section-header">
+            <h3>🏟️ Manage Turfs</h3>
+            <button class="btn btn-success" id="addTurfBtn">
+                ➕ Add New Turf
+            </button>
+        </div>
+        
+        <div class="turfs-table">
+            <table id="turfsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Rating</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="turfsTableBody">
+                    <!-- Turfs will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bookings Table -->
+        <div class="section-header" style="margin-top: 40px;">
+            <h3>📅 Recent Bookings</h3>
+        </div>
+        
+        <div class="bookings-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Turf</th>
+                        <th>Customer</th>
+                        <th>Mobile</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingsTableBody">
+                    <!-- Bookings will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Turf Modal -->
+    <div id="turfModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">➕ Add New Turf</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="turfForm">
+                    <div class="form-group">
+                        <label for="turfName">Turf Name *</label>
+                        <input type="text" id="turfName" placeholder="Enter turf name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="turfAddress">Address *</label>
+                        <input type="text" id="turfAddress" placeholder="Enter full address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="turfType">Primary Type *</label>
+                        <select id="turfType" required>
+                            <option value="">Select primary type</option>
+                            <option value="Football">Football</option>
+                            <option value="Cricket">Cricket</option>
+                            <option value="Basketball">Basketball</option>
+                            <option value="Badminton">Badminton</option>
+                            <option value="Tennis">Tennis</option>
+                            <option value="Volleyball">Volleyball</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Sports Available * (Select all that apply)</label>
+                        <div class="sports-checkboxes">
+                            <div class="sport-checkbox">
+                                <input type="checkbox" name="sports" value="Cricket" id="sport-cricket" class="sport-checkbox-input">
+                                <label for="sport-cricket">🏏 Cricket</label>
+                            </div>
+                            <div class="sport-checkbox">
+                                <input type="checkbox" name="sports" value="Football" id="sport-football" class="sport-checkbox-input">
+                                <label for="sport-football">⚽ Football</label>
+                            </div>
+                            <div class="sport-checkbox">
+                                <input type="checkbox" name="sports" value="Basketball" id="sport-basketball" class="sport-checkbox-input">
+                                <label for="sport-basketball">🏀 Basketball</label>
+                            </div>
+                            <div class="sport-checkbox">
+                                <input type="checkbox" name="sports" value="Badminton" id="sport-badminton" class="sport-checkbox-input">
+                                <label for="sport-badminton">🏸 Badminton</label>
+                            </div>
+                            <div class="sport-checkbox">
+                                <input type="checkbox" name="sports" value="Tennis" id="sport-tennis" class="sport-checkbox-input">
+                                <label for="sport-tennis">🎾 Tennis</label>
+                            </div>
+                            <div class="sport-checkbox">
+                                <input type="checkbox" name="sports" value="Volleyball" id="sport-volleyball" class="sport-checkbox-input">
+                                <label for="sport-volleyball">🏐 Volleyball</label>
+                            </div>
+                        </div>
+                        <small>Select at least one sport</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="turfPrice">Price per Hour (₹) *</label>
+                        <input type="number" id="turfPrice" placeholder="500" min="0" required>
+                    </div>
+                    
+                    <div class="form-section-divider">
+                        <h4>👤 Turf Owner Credentials</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ownerEmail">Owner Email *</label>
+                        <input type="email" id="ownerEmail" placeholder="owner@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ownerPassword">Owner Password *</label>
+                        <input type="password" id="ownerPassword" placeholder="Create a secure password" minlength="6" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ownerName">Owner Name *</label>
+                        <input type="text" id="ownerName" placeholder="Full name of the owner" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ownerMobile">Owner Mobile *</label>
+                        <input type="tel" id="ownerMobile" placeholder="10-digit mobile number" pattern="[0-9]{10}" required>
+                    </div>
+                    
+                    <div class="form-section-divider">
+                        <h4>📍 Location</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Select Location on Map *</label>
+                        <div id="addTurfMap"></div>
+                        <small>Click on the map to select turf location</small>
+                        <input type="hidden" id="turfLat">
+                        <input type="hidden" id="turfLng">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-large">💾 Save Turf</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>🔑 Change Admin Password</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password *</label>
+                        <input type="password" id="currentPassword" placeholder="Enter current password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password *</label>
+                        <input type="password" id="newPassword" placeholder="Enter new password" minlength="6" required>
+                        <small>Minimum 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password *</label>
+                        <input type="password" id="confirmPassword" placeholder="Confirm new password" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-large">🔒 Update Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- MongoDB Config -->
+    <script src="mongodb-config.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
