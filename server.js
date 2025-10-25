@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -9,11 +10,11 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // Serve static files
+app.use(express.static(path.join(__dirname))); // Serve static files
 
 // Root route - serve index.html
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // MongoDB Connection
@@ -328,22 +329,27 @@ async function initializeSampleData() {
 // Catch-all route - serve index.html for any non-API routes (for client-side routing)
 app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
-        res.sendFile(__dirname + '/index.html');
+        res.sendFile(path.join(__dirname, 'index.html'));
     }
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Start Server (only for local development)
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        initializeSampleData();
+    });
+    
+    // Handle graceful shutdown
+    process.on('SIGINT', async () => {
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed');
+        process.exit(0);
+    });
+} else {
+    // For production (Vercel), initialize sample data on cold start
     initializeSampleData();
-});
-
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-    await mongoose.connection.close();
-    console.log('MongoDB connection closed');
-    process.exit(0);
-});
+}
 
 // Export for Vercel
 module.exports = app;
