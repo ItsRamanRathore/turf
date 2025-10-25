@@ -11,6 +11,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); // Serve static files
 
+// Root route - serve index.html
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
 
@@ -320,6 +325,13 @@ async function initializeSampleData() {
     }
 }
 
+// Catch-all route - serve index.html for any non-API routes (for client-side routing)
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(__dirname + '/index.html');
+    }
+});
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
@@ -332,3 +344,6 @@ process.on('SIGINT', async () => {
     console.log('MongoDB connection closed');
     process.exit(0);
 });
+
+// Export for Vercel
+module.exports = app;
