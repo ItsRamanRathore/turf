@@ -108,7 +108,7 @@ function setupEventListeners() {
             document.getElementById('modalTitle').textContent = 'Add New Turf';
             document.getElementById('turfForm').reset();
             document.getElementById('turfModal').style.display = 'block';
-            setTimeout(initAddTurfMap, 100);
+            setTimeout(initAddTurfMap, 300);
         });
     }
     
@@ -208,6 +208,11 @@ function initAddTurfMap() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(adminMap);
     
+    // Force map to recalculate size after modal is visible
+    setTimeout(() => {
+        adminMap.invalidateSize();
+    }, 200);
+    
     // Add click event to map
     adminMap.on('click', function(e) {
         const lat = e.latlng.lat;
@@ -240,7 +245,7 @@ async function handleTurfFormSubmit(e) {
     
     // Get selected sports
     const selectedSports = [];
-    document.querySelectorAll('.sport-checkbox:checked').forEach(checkbox => {
+    document.querySelectorAll('.sport-checkbox-input:checked').forEach(checkbox => {
         selectedSports.push(checkbox.value);
     });
     
