@@ -4,36 +4,36 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.mp4",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/styles.css",
-      "dest": "/styles.css"
+      "src": "/(.*\\.css)",
+      "dest": "/$1"
     },
     {
-      "src": "/app.js",
-      "dest": "/app.js"
+      "src": "/(.*\\.js)",
+      "dest": "/$1"
     },
     {
-      "src": "/mongodb-config.js",
-      "dest": "/mongodb-config.js"
-    },
-    {
-      "src": "/admin.js",
-      "dest": "/admin.js"
-    },
-    {
-      "src": "/owner-dashboard.js",
-      "dest": "/owner-dashboard.js"
-    },
-    {
-      "src": "/admin-panel.css",
-      "dest": "/admin-panel.css"
-    },
-    {
-      "src": "/owner-dashboard.css",
-      "dest": "/owner-dashboard.css"
+      "src": "/(.*\\.html)",
+      "dest": "/$1"
     },
     {
       "src": "/(.*\\.(mp4|jpg|jpeg|png|gif|svg|ico))",
@@ -44,8 +44,8 @@
       "dest": "/server.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/server.js"
+      "src": "/",
+      "dest": "/index.html"
     }
   ]
 }
