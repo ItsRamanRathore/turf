@@ -32,6 +32,7 @@ async function initializeOwnerData() {
         loadTurfDetails();
         loadStatistics();
         loadBookings();
+        loadPaymentDetails();
     } else {
         document.getElementById('turfDetails').innerHTML = '<p>Turf not found. Please contact admin.</p>';
     }
@@ -166,6 +167,28 @@ function setupEventListeners() {
     if (changePasswordForm) {
         changePasswordForm.addEventListener('submit', handleChangePassword);
     }
+
+    // Payment details button
+    const editPaymentDetailsBtn = document.getElementById('editPaymentDetailsBtn');
+    if (editPaymentDetailsBtn) {
+        editPaymentDetailsBtn.addEventListener('click', () => {
+            openPaymentDetailsModal();
+        });
+    }
+
+    // Payment details form
+    const paymentDetailsForm = document.getElementById('paymentDetailsForm');
+    if (paymentDetailsForm) {
+        paymentDetailsForm.addEventListener('submit', handleUpdatePaymentDetails);
+    }
+
+    // Cancel payment details button
+    const cancelPaymentDetailsBtn = document.getElementById('cancelPaymentDetailsBtn');
+    if (cancelPaymentDetailsBtn) {
+        cancelPaymentDetailsBtn.addEventListener('click', () => {
+            document.getElementById('paymentDetailsModal').style.display = 'none';
+        });
+    }
     
     // Close modal
     document.querySelectorAll('.close').forEach(btn => {
@@ -213,5 +236,135 @@ async function handleChangePassword(e) {
         document.getElementById('changePasswordForm').reset();
     } else {
         alert('Error updating password. Please try again.');
+    }
+}
+
+// Load payment details
+async function loadPaymentDetails() {
+    try {
+        const response = await fetch(`/api/turfs/${ownerTurfId}/payment-details`);
+        const data = await response.json();
+
+        if (data.success && data.paymentDetails) {
+            const details = data.paymentDetails;
+            const hasDetails = details.accountNumber && details.ifsc;
+
+            document.getElementById('paymentDetailsView').innerHTML = `
+                <div class="payment-details-grid">
+                    ${hasDetails ? `
+                        <div class="payment-detail-item">
+                            <span class="detail-label">💳 Account Holder Name</span>
+                            <span class="detail-value">${details.accountHolderName || 'Not provided'}</span>
+                        </div>
+                        <div class="payment-detail-item">
+                            <span class="detail-label">🏦 Account Number</span>
+                            <span class="detail-value">${maskAccountNumber(details.accountNumber)}</span>
+                        </div>
+                        <div class="payment-detail-item">
+                            <span class="detail-label">🔢 IFSC Code</span>
+                            <span class="detail-value">${details.ifsc || 'Not provided'}</span>
+                        </div>
+                        <div class="payment-detail-item">
+                            <span class="detail-label">📱 PhonePe Merchant ID</span>
+                            <span class="detail-value">${details.ownerMerchantId || 'Not provided'}</span>
+                        </div>
+                        <div class="payment-detail-item">
+                            <span class="detail-label">✅ Payment Split Status</span>
+                            <span class="detail-value ${details.paymentSplitEnabled ? 'status-active' : 'status-inactive'}">
+                                ${details.paymentSplitEnabled ? '🟢 Enabled (90% direct to you)' : '🔴 Disabled'}
+                            </span>
+                        </div>
+                    ` : `
+                        <div class="no-payment-details">
+                            <p style="color: #ff9800; font-weight: 600;">⚠️ Payment details not configured</p>
+                            <p style="color: #666; font-size: 14px;">Please add your bank account details to receive your 90% share of booking payments.</p>
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading payment details:', error);
+        document.getElementById('paymentDetailsView').innerHTML = `
+            <p style="color: #f44336;">Error loading payment details. Please try again.</p>
+        `;
+    }
+}
+
+// Mask account number for security
+function maskAccountNumber(accountNumber) {
+    if (!accountNumber) return 'Not provided';
+    const visible = accountNumber.slice(-4);
+    return `XXXX-XXXX-${visible}`;
+}
+
+// Open payment details modal with current data
+async function openPaymentDetailsModal() {
+    try {
+        const response = await fetch(`/api/turfs/${ownerTurfId}/payment-details`);
+        const data = await response.json();
+
+        if (data.success && data.paymentDetails) {
+            const details = data.paymentDetails;
+            document.getElementById('accountHolderName').value = details.accountHolderName || '';
+            document.getElementById('accountNumber').value = details.accountNumber || '';
+            document.getElementById('ifscCode').value = details.ifsc || '';
+            document.getElementById('ownerMerchantId').value = details.ownerMerchantId || '';
+        }
+
+        document.getElementById('paymentDetailsModal').style.display = 'block';
+    } catch (error) {
+        console.error('Error opening payment details modal:', error);
+        alert('Error loading payment details. Please try again.');
+    }
+}
+
+// Handle update payment details
+async function handleUpdatePaymentDetails(e) {
+    e.preventDefault();
+
+    const accountHolderName = document.getElementById('accountHolderName').value.trim();
+    const accountNumber = document.getElementById('accountNumber').value.trim();
+    const ifscCode = document.getElementById('ifscCode').value.trim().toUpperCase();
+    const ownerMerchantId = document.getElementById('ownerMerchantId').value.trim();
+
+    // Validate account number (9-18 digits)
+    if (!/^[0-9]{9,18}$/.test(accountNumber)) {
+        alert('Invalid account number. Must be 9-18 digits.');
+        return;
+    }
+
+    // Validate IFSC code
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
+        alert('Invalid IFSC code. Format: XXXX0XXXXXX (e.g., SBIN0001234)');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/turfs/${ownerTurfId}/payment-details`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                accountHolderName,
+                accountNumber,
+                ifsc: ifscCode,
+                ownerMerchantId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Payment details updated successfully! You will now receive 90% of booking payments directly.');
+            document.getElementById('paymentDetailsModal').style.display = 'none';
+            loadPaymentDetails(); // Reload to show updated data
+        } else {
+            alert('Error: ' + (data.error || 'Failed to update payment details'));
+        }
+    } catch (error) {
+        console.error('Error updating payment details:', error);
+        alert('Error updating payment details. Please try again.');
     }
 }

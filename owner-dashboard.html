@@ -39,6 +39,17 @@
             </div>
         </div>
 
+        <!-- Payment Details Section -->
+        <div class="payment-details-card">
+            <div class="card-header">
+                <h4>💳 Payment & Bank Details</h4>
+                <button class="btn btn-primary" id="editPaymentDetailsBtn">✏️ Edit Details</button>
+            </div>
+            <div id="paymentDetailsView">
+                <p>Loading payment details...</p>
+            </div>
+        </div>
+
         <!-- Statistics -->
         <div class="stats">
             <div class="stat-card">
@@ -111,6 +122,49 @@
                         <input type="password" id="confirmPassword" placeholder="Confirm new password" minlength="6" required>
                     </div>
                     <button type="submit" class="btn btn-success btn-large">🔒 Update Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Details Modal -->
+    <div id="paymentDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>💳 Update Payment Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="info-banner" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+                    <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                        <strong>ℹ️ Important:</strong> These details are required to receive your 90% share of booking payments directly to your account.
+                    </p>
+                </div>
+                <form id="paymentDetailsForm">
+                    <div class="form-group">
+                        <label for="accountHolderName">Account Holder Name *</label>
+                        <input type="text" id="accountHolderName" placeholder="Enter account holder name" required>
+                        <small>Name as per bank account</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="accountNumber">Bank Account Number *</label>
+                        <input type="text" id="accountNumber" placeholder="Enter account number" required pattern="[0-9]{9,18}">
+                        <small>Enter your bank account number (9-18 digits)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="ifscCode">IFSC Code *</label>
+                        <input type="text" id="ifscCode" placeholder="Enter IFSC code" required pattern="^[A-Z]{4}0[A-Z0-9]{6}$" style="text-transform: uppercase;">
+                        <small>11-character IFSC code (e.g., SBIN0001234)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="ownerMerchantId">PhonePe Merchant ID (Optional)</label>
+                        <input type="text" id="ownerMerchantId" placeholder="Enter PhonePe Merchant ID (if available)">
+                        <small>Required for automatic payment split. Leave blank if you don't have one.</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelPaymentDetailsBtn">Cancel</button>
+                        <button type="submit" class="btn btn-success">💾 Save Payment Details</button>
+                    </div>
                 </form>
             </div>
         </div>

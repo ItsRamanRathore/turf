@@ -1,218 +1,175 @@
-// MongoDB Configuration
-// API Base URL - change this when deploying to production
-const API_BASE_URL = 'http://localhost:3000/api';
+// MongoDB API Wrapper
+// This provides a database object that communicates with the server API
 
-// Database Helper Functions
 const database = {
-    // Users
-    async saveUser(userId, userData) {
+    // Get all turfs
+    async getAllTurfs() {
         try {
-            const response = await fetch(`${API_BASE_URL}/users`, {
+            const response = await fetch('/api/turfs');
+            if (!response.ok) throw new Error('Failed to fetch turfs');
+            const turfs = await response.json();
+            
+            // Convert to expected format
+            return turfs.map(turf => ({
+                id: turf.turfId,
+                name: turf.name,
+                location: turf.location,
+                address: turf.address,
+                price: turf.price,
+                type: turf.type,
+                sports: turf.sports || [],
+                rating: turf.rating || 4.0,
+                owner: turf.owner
+            }));
+        } catch (error) {
+            console.error('Error fetching turfs:', error);
+            return [];
+        }
+    },
+
+    // Save turf
+    async saveTurf(turfId, turfData) {
+        try {
+            const response = await fetch('/api/turfs', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId, ...userData })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    turfId: turfId,
+                    ...turfData
+                })
             });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to save user');
-            }
-            
-            const data = await response.json();
-            return data.success;
+            return response.ok;
         } catch (error) {
-            console.error('Error saving user:', error);
-            
-            // Fallback to localStorage
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            users[userId] = userData;
-            localStorage.setItem('users', JSON.stringify(users));
-            return true;
+            console.error('Error saving turf:', error);
+            return false;
         }
     },
 
-    async getUser(userId) {
+    // Get all users
+    async getAllUsers() {
         try {
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+            const response = await fetch('/api/users');
+            if (!response.ok) throw new Error('Failed to fetch users');
+            const users = await response.json();
             
-            if (!response.ok) {
-                throw new Error('User not found');
-            }
-            
-            return await response.json();
+            // Convert to expected format
+            return users.map(user => ({
+                id: user.userId,
+                name: user.name,
+                email: user.email,
+                mobile: user.mobile,
+                password: user.password,
+                type: user.type
+            }));
         } catch (error) {
-            console.error('Error getting user:', error);
-            
-            // Fallback to localStorage
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            return users[userId] || null;
+            console.error('Error fetching users:', error);
+            return [];
         }
     },
 
+    // Get user by email
     async getUserByEmail(email) {
         try {
-            const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`);
-            
-            if (!response.ok) {
-                return null;
-            }
-            
-            const user = await response.json();
-            return { id: user.userId, ...user };
+            const users = await this.getAllUsers();
+            return users.find(u => u.email === email);
         } catch (error) {
-            console.error('Error getting user by email:', error);
-            
-            // Fallback to localStorage
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            for (const [id, user] of Object.entries(users)) {
-                if (user.email === email) {
-                    return { id, ...user };
-                }
-            }
+            console.error('Error getting user:', error);
             return null;
         }
     },
 
-    // Turfs
-    async saveTurf(turfId, turfData) {
+    // Save user
+    async saveUser(userId, userData) {
         try {
-            const response = await fetch(`${API_BASE_URL}/turfs`, {
+            const response = await fetch('/api/users', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ turfId, ...turfData })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    ...userData
+                })
             });
-            
-            if (!response.ok) {
-                throw new Error('Failed to save turf');
-            }
-            
-            const data = await response.json();
-            return data.success;
+            return response.ok;
         } catch (error) {
-            console.error('Error saving turf:', error);
-            
-            // Fallback to localStorage
-            const turfs = JSON.parse(localStorage.getItem('turfs') || '[]');
-            const index = turfs.findIndex(t => t.id === turfId);
-            if (index !== -1) {
-                turfs[index] = { id: turfId, ...turfData };
-            } else {
-                turfs.push({ id: turfId, ...turfData });
-            }
-            localStorage.setItem('turfs', JSON.stringify(turfs));
-            return true;
+            console.error('Error saving user:', error);
+            return false;
         }
     },
 
-    async getAllTurfs() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/turfs`);
-            
-            if (!response.ok) {
-                throw new Error('Failed to get turfs');
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error getting turfs:', error);
-            
-            // Fallback to localStorage
-            return JSON.parse(localStorage.getItem('turfs') || '[]');
-        }
-    },
-
-    async deleteTurf(turfId) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/turfs/${turfId}`, {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to delete turf');
-            }
-            
-            const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error deleting turf:', error);
-            
-            // Fallback to localStorage
-            let turfs = JSON.parse(localStorage.getItem('turfs') || '[]');
-            turfs = turfs.filter(t => t.id !== turfId);
-            localStorage.setItem('turfs', JSON.stringify(turfs));
-            return true;
-        }
-    },
-
-    // Bookings
-    async saveBooking(bookingId, bookingData) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/bookings`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ bookingId, ...bookingData })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to save booking');
-            }
-            
-            const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error saving booking:', error);
-            
-            // Fallback to localStorage
-            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-            bookings.push({ id: bookingId, ...bookingData });
-            localStorage.setItem('bookings', JSON.stringify(bookings));
-            return true;
-        }
-    },
-
+    // Get all bookings
     async getAllBookings() {
         try {
-            const response = await fetch(`${API_BASE_URL}/bookings`);
+            const response = await fetch('/api/bookings');
+            if (!response.ok) throw new Error('Failed to fetch bookings');
+            const bookings = await response.json();
             
-            if (!response.ok) {
-                throw new Error('Failed to get bookings');
-            }
-            
+            // Convert to expected format
+            return bookings.map(booking => ({
+                id: booking.bookingId,
+                turfId: booking.turfId,
+                turfName: booking.turfName,
+                customerName: booking.customerName,
+                customerMobile: booking.customerMobile,
+                customerEmail: booking.customerEmail,
+                date: booking.date,
+                time: booking.time,
+                price: booking.price,
+                status: booking.status,
+                createdAt: booking.createdAt
+            }));
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+            return [];
+        }
+    },
+
+    // Save booking
+    async saveBooking(bookingId, bookingData) {
+        try {
+            const response = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bookingId: bookingId,
+                    ...bookingData
+                })
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Error saving booking:', error);
+            return false;
+        }
+    },
+
+    // Get bookings by turf
+    async getBookingsByTurf(turfId) {
+        try {
+            const response = await fetch(`/api/bookings/turf/${turfId}`);
+            if (!response.ok) throw new Error('Failed to fetch bookings');
             return await response.json();
         } catch (error) {
-            console.error('Error getting bookings:', error);
-            
-            // Fallback to localStorage
-            return JSON.parse(localStorage.getItem('bookings') || '[]');
+            console.error('Error fetching turf bookings:', error);
+            return [];
+        }
+    },
+
+    // Get bookings by customer
+    async getBookingsByCustomer(email) {
+        try {
+            const response = await fetch(`/api/bookings/customer/${email}`);
+            if (!response.ok) throw new Error('Failed to fetch bookings');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching customer bookings:', error);
+            return [];
         }
     }
 };
 
-// Admin credentials (hardcoded for security)
+// Admin credentials (defined globally)
 const ADMIN_CREDENTIALS = {
-    email: 'ramanrathore031204@gmail.com',
-    password: 'Raman00'
+    email: 'admin@turfbooking.com',
+    password: 'admin123'
 };
 
-// Initialize sample data if needed
-async function initializeSampleData() {
-    try {
-        const turfs = await database.getAllTurfs();
-        
-        if (turfs.length === 0) {
-            console.log('No turfs found. Sample data will be added by the server.');
-            // Sample data is now handled by server.js
-        }
-    } catch (error) {
-        console.error('Error checking for sample data:', error);
-    }
-}
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', initializeSampleData);
+console.log('✅ MongoDB API Wrapper loaded');

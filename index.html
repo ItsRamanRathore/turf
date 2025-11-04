@@ -71,6 +71,9 @@
                 <button class="sidebar-btn" onclick="showContactInfo()">
                     📞 Contact Us
                 </button>
+                <button class="sidebar-btn" onclick="showTermsAndConditions()">
+                    📋 Terms & Conditions
+                </button>
             </div>
         </div>
     </div>
@@ -97,7 +100,7 @@
         <!-- Video Hero Section -->
         <section class="video-hero">
             <video autoplay muted loop playsinline class="hero-video">
-                <source src="WhatsApp Video 2025-10-18 at 08.58.54_77138ef9.mp4" type="video/mp4">
+                <source src="WhatsApp Video 2025-10-18 at 08.58.54_6412ec40.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <div class="hero-overlay">
@@ -425,19 +428,54 @@
                             </li>
                         </ul>
                     </div>
+
                 </div>
 
-                <!-- Newsletter Section -->
-                <div class="footer-newsletter">
-                    <div class="newsletter-content">
-                        <div class="newsletter-text">
-                            <h3>📬 Subscribe to Our Newsletter</h3>
-                            <p>Get updates on new turfs, special offers, and sports events!</p>
+                <!-- Partner & Newsletter Combined Section -->
+                <div class="footer-combined-section">
+                    <div class="combined-content">
+                        <!-- Become Our Partner -->
+                        <div class="partner-info">
+                            <h4 class="footer-title">🤝 Become Our Partner</h4>
+                            <p class="partner-description">
+                                Own a sports turf? Join our growing network and reach thousands of customers!
+                            </p>
+                            <div class="partner-contacts">
+                                <div class="partner-contact-item">
+                                    <span class="contact-icon">📧</span>
+                                    <div>
+                                        <strong>Partnership Inquiry</strong>
+                                        <a href="mailto:partner@turfbooking.com">partner@turfbooking.com</a>
+                                    </div>
+                                </div>
+                                <div class="partner-contact-item">
+                                    <span class="contact-icon">📞</span>
+                                    <div>
+                                        <strong>Partnership Hotline</strong>
+                                        <a href="tel:+919876543211">+91 9876543211</a>
+                                    </div>
+                                </div>
+                                <div class="partner-contact-item">
+                                    <span class="contact-icon">💼</span>
+                                    <div>
+                                        <strong>Business Hours</strong>
+                                        <span>Mon - Sat: 10 AM - 6 PM</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
-                            <input type="email" placeholder="Enter your email address" required>
-                            <button type="submit" class="btn btn-primary">Subscribe</button>
-                        </form>
+
+                        <!-- Newsletter -->
+                        <div class="newsletter-info">
+                            <h4 class="footer-title">📬 Newsletter</h4>
+                            <p class="newsletter-description">
+                                Get updates on new turfs, special offers, and sports events!
+                            </p>
+                            <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+                                <input type="email" placeholder="Enter your email address" required>
+                                <button type="submit" class="btn btn-primary">Subscribe</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -504,6 +542,10 @@
             
             <!-- Role Selection -->
             <div class="role-selector">
+                <button class="role-btn" data-role="customer">
+                    <span class="role-icon">👤</span>
+                    <span>Customer</span>
+                </button>
                 <button class="role-btn active" data-role="owner">
                     <span class="role-icon">🏟️</span>
                     <span>Turf Owner</span>
@@ -515,23 +557,34 @@
             </div>
 
             <form id="unifiedLoginForm">
-                <input type="hidden" id="loginRole" value="owner">
+                <input type="hidden" id="loginRole" value="customer">
+                
+                <!-- Customer Login Fields (shown only for customers) -->
+                <div class="form-group" id="customerNameGroup" style="display: block;">
+                    <label for="customerLoginName">Name *</label>
+                    <input type="text" id="customerLoginName" placeholder="Enter your name" required>
+                </div>
+                
+                <div class="form-group" id="customerMobileGroup" style="display: block;">
+                    <label for="customerLoginMobile">Mobile Number *</label>
+                    <input type="tel" id="customerLoginMobile" placeholder="Enter 10-digit mobile number" pattern="[0-9]{10}" required>
+                </div>
                 
                 <!-- Turf Selection for Owner (shown only for owners) -->
-                <div class="form-group" id="turfSelectionGroup">
+                <div class="form-group" id="turfSelectionGroup" style="display: none;">
                     <label for="loginTurfSelect">Select Your Turf *</label>
-                    <select id="loginTurfSelect" required>
+                    <select id="loginTurfSelect">
                         <option value="">-- Select your turf --</option>
                         <!-- Turfs will be loaded dynamically -->
                     </select>
                     <small style="color: #666;">Select your turf to continue</small>
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group" id="emailGroup" style="display: block;">
                     <label for="loginEmail">Email *</label>
                     <input type="email" id="loginEmail" placeholder="Enter your email" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="passwordGroup" style="display: block;">
                     <label for="loginPassword">Password *</label>
                     <input type="password" id="loginPassword" placeholder="Enter your password" required>
                 </div>
@@ -765,10 +818,140 @@
         </div>
     </div>
 
+    <!-- Terms and Conditions Modal -->
+    <div id="termsModal" class="modal">
+        <div class="modal-content terms-modal">
+            <span class="close">&times;</span>
+            <h2>📋 Terms and Conditions for Turf Booking</h2>
+            <div class="terms-content">
+                <p class="terms-intro"><strong>Last Updated: October 28, 2025</strong></p>
+                <p class="terms-intro">Please read these Terms and Conditions carefully before using our turf booking services.</p>
+
+                <div class="terms-section">
+                    <h3>1. Acceptance of Terms</h3>
+                    <p>By accessing and using the Turf Booking Bhopal platform, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to these terms, please do not use our services.</p>
+                </div>
+
+                <div class="terms-section">
+                    <h3>2. Booking Policy</h3>
+                    <ul>
+                        <li><strong>Advance Booking:</strong> All turf bookings must be made at least 2 hours in advance.</li>
+                        <li><strong>Payment:</strong> Full payment is required at the time of booking through our secure payment gateway.</li>
+                        <li><strong>Booking Confirmation:</strong> You will receive a booking confirmation via email and SMS with your booking ID.</li>
+                        <li><strong>Time Slots:</strong> Each booking is valid for the selected time slot only. Additional time requires a new booking.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>3. Cancellation and Refund Policy</h3>
+                    <ul>
+                        <li><strong>Cancellation Window:</strong> Bookings can be cancelled up to 6 hours before the scheduled time.</li>
+                        <li><strong>Refund Process:</strong> 
+                            <ul>
+                                <li>Cancellations made 24+ hours in advance: 100% refund</li>
+                                <li>Cancellations made 6-24 hours in advance: 50% refund</li>
+                                <li>Cancellations made less than 6 hours: No refund</li>
+                            </ul>
+                        </li>
+                        <li><strong>Refund Timeline:</strong> Approved refunds will be processed within 5-7 business days.</li>
+                        <li><strong>Weather Cancellation:</strong> In case of severe weather conditions, full refund will be provided.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>4. User Responsibilities</h3>
+                    <ul>
+                        <li><strong>Accurate Information:</strong> Users must provide accurate personal and contact information during registration and booking.</li>
+                        <li><strong>Punctuality:</strong> Users must arrive on time. Late arrivals will not receive extended time.</li>
+                        <li><strong>Facility Care:</strong> Users are responsible for any damage to the turf or equipment during their booking period.</li>
+                        <li><strong>Conduct:</strong> Users must maintain appropriate behavior and follow all facility rules.</li>
+                        <li><strong>Safety:</strong> Users play at their own risk. We recommend appropriate safety gear.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>5. Prohibited Activities</h3>
+                    <ul>
+                        <li>Bringing outside food or beverages (unless specified by the turf owner)</li>
+                        <li>Smoking or consumption of alcohol/drugs on the premises</li>
+                        <li>Use of abusive language or violent behavior</li>
+                        <li>Unauthorized commercial activities or events</li>
+                        <li>Bringing pets (unless it's a pet-friendly facility)</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>6. Liability and Insurance</h3>
+                    <ul>
+                        <li><strong>Limited Liability:</strong> Turf Booking Bhopal acts as a booking platform and is not responsible for injuries, accidents, or losses during turf usage.</li>
+                        <li><strong>Third-Party Facilities:</strong> Each turf is independently owned. We are not liable for facility conditions or services.</li>
+                        <li><strong>Personal Insurance:</strong> Users are advised to have personal insurance coverage.</li>
+                        <li><strong>Medical Emergencies:</strong> Contact emergency services immediately. We are not responsible for medical expenses.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>7. Payment Terms</h3>
+                    <ul>
+                        <li><strong>Payment Gateway:</strong> All payments are processed through PhonePe secure payment gateway.</li>
+                        <li><strong>Pricing:</strong> Prices displayed are inclusive of applicable taxes unless stated otherwise.</li>
+                        <li><strong>Payment Confirmation:</strong> Bookings are confirmed only after successful payment.</li>
+                        <li><strong>Failed Transactions:</strong> In case of payment failure, the amount will be refunded to the source account within 5-7 business days.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>8. Privacy and Data Protection</h3>
+                    <ul>
+                        <li><strong>Data Collection:</strong> We collect personal information necessary for booking and communication.</li>
+                        <li><strong>Data Usage:</strong> Your data is used solely for booking management and service improvement.</li>
+                        <li><strong>Data Security:</strong> We employ industry-standard security measures to protect your data.</li>
+                        <li><strong>Third-Party Sharing:</strong> We do not sell or share your personal information with third parties without consent.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>9. Modifications to Service</h3>
+                    <p>We reserve the right to modify, suspend, or discontinue any part of our service at any time without prior notice. We are not liable for any modification, suspension, or discontinuance of the service.</p>
+                </div>
+
+                <div class="terms-section">
+                    <h3>10. Force Majeure</h3>
+                    <p>We are not liable for any failure to perform our obligations due to circumstances beyond our reasonable control, including but not limited to natural disasters, pandemics, government restrictions, or technical failures.</p>
+                </div>
+
+                <div class="terms-section">
+                    <h3>11. Dispute Resolution</h3>
+                    <ul>
+                        <li><strong>Contact First:</strong> In case of disputes, please contact our support team at support@turfbookingbhopal.com</li>
+                        <li><strong>Jurisdiction:</strong> These terms are governed by the laws of India.</li>
+                        <li><strong>Venue:</strong> Any legal disputes shall be subject to the exclusive jurisdiction of courts in Bhopal, Madhya Pradesh.</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h3>12. Contact Information</h3>
+                    <p>For questions or concerns regarding these Terms and Conditions, please contact us:</p>
+                    <ul>
+                        <li><strong>Email:</strong> support@turfbookingbhopal.com</li>
+                        <li><strong>Phone:</strong> +91 9876543210</li>
+                        <li><strong>Admin:</strong> ramanrathore031204@gmail.com</li>
+                    </ul>
+                </div>
+
+                <div class="terms-footer">
+                    <p><strong>By using our services, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- MongoDB Config -->
     <script src="mongodb-config.js"></script>
     <script src="app.js"></script>
+    <!-- PhonePe Payment Integration -->
+    <script src="payment.js"></script>
 </body>
 </html>

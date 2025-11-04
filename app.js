@@ -234,9 +234,28 @@ function initMap() {
 // Load turfs from database
 async function loadTurfs() {
     try {
-        console.log('Loading turfs from database...');
-        turfsData = await database.getAllTurfs();
-        console.log('Turfs loaded:', turfsData.length);
+        console.log('Loading turfs from server API...');
+        
+        // Fetch turfs from server API
+        const response = await fetch('/api/turfs');
+        if (!response.ok) {
+            throw new Error('Failed to fetch turfs from server');
+        }
+        
+        const data = await response.json();
+        turfsData = data.map(turf => ({
+            id: turf.turfId,
+            name: turf.name,
+            location: turf.location,
+            address: turf.address,
+            price: turf.price,
+            type: turf.type,
+            sports: turf.sports || [],
+            rating: turf.rating || 4.0,
+            owner: turf.owner
+        }));
+        
+        console.log('Turfs loaded from API:', turfsData.length);
         displayTurfs();
         updateSportCounts(); // Update sport venue counts
     } catch (error) {
@@ -374,15 +393,62 @@ function initModals() {
             const role = this.dataset.role;
             document.getElementById('loginRole').value = role;
             
-            // Show/hide turf selection based on role
+            // Update active state
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Get form elements
             const turfSelectionGroup = document.getElementById('turfSelectionGroup');
             const turfSelect = document.getElementById('loginTurfSelect');
-            if (role === 'owner') {
-                turfSelectionGroup.style.display = 'block';
-                turfSelect.setAttribute('required', 'required');
-            } else {
+            const customerNameGroup = document.getElementById('customerNameGroup');
+            const customerMobileGroup = document.getElementById('customerMobileGroup');
+            const customerLoginName = document.getElementById('customerLoginName');
+            const customerLoginMobile = document.getElementById('customerLoginMobile');
+            const emailGroup = document.getElementById('emailGroup');
+            const passwordGroup = document.getElementById('passwordGroup');
+            const loginEmail = document.getElementById('loginEmail');
+            const loginPassword = document.getElementById('loginPassword');
+            
+            // Show/hide fields based on role
+            if (role === 'customer') {
+                // Customer: Show name & mobile, hide email & password & turf
+                customerNameGroup.style.display = 'block';
+                customerMobileGroup.style.display = 'block';
+                emailGroup.style.display = 'block'; // Keep email for customer
+                passwordGroup.style.display = 'block'; // Keep password for customer
                 turfSelectionGroup.style.display = 'none';
+                
+                customerLoginName.setAttribute('required', 'required');
+                customerLoginMobile.setAttribute('required', 'required');
+                loginEmail.setAttribute('required', 'required');
+                loginPassword.setAttribute('required', 'required');
                 turfSelect.removeAttribute('required');
+            } else if (role === 'owner') {
+                // Owner: Show turf selection, email & password, hide customer fields
+                turfSelectionGroup.style.display = 'block';
+                customerNameGroup.style.display = 'none';
+                customerMobileGroup.style.display = 'none';
+                emailGroup.style.display = 'block';
+                passwordGroup.style.display = 'block';
+                
+                turfSelect.setAttribute('required', 'required');
+                loginEmail.setAttribute('required', 'required');
+                loginPassword.setAttribute('required', 'required');
+                customerLoginName.removeAttribute('required');
+                customerLoginMobile.removeAttribute('required');
+            } else {
+                // Admin: Show email & password only
+                turfSelectionGroup.style.display = 'none';
+                customerNameGroup.style.display = 'none';
+                customerMobileGroup.style.display = 'none';
+                emailGroup.style.display = 'block';
+                passwordGroup.style.display = 'block';
+                
+                turfSelect.removeAttribute('required');
+                loginEmail.setAttribute('required', 'required');
+                loginPassword.setAttribute('required', 'required');
+                customerLoginName.removeAttribute('required');
+                customerLoginMobile.removeAttribute('required');
             }
         });
     });
@@ -662,36 +728,56 @@ async function handleCustomerRegistration(e) {
         return;
     }
     
-    // Check if user already exists
-    const existingUser = await database.getUserByEmail(email);
-    if (existingUser) {
-        alert('An account with this email already exists. Please login.');
-        return;
-    }
-    
-    // Store customer data
-    const userId = 'user_' + Date.now();
-    const customer = { 
-        name, 
-        mobile, 
-        email, 
-        password, // In production, hash this!
-        type: 'customer',
-        createdAt: new Date().toISOString()
-    };
-    
-    const saved = await database.saveUser(userId, customer);
-    if (saved) {
-        currentUser = { id: userId, ...customer };
-        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    // Check if user already exists and create user via API
+    try {
+        const userId = 'user_' + Date.now();
+        const response = await fetch('/api/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId,
+                name, 
+                mobile, 
+                email, 
+                password, // In production, hash this!
+                type: 'customer'
+            })
+        });
         
-        alert(`Welcome ${name}! You are now registered.`);
-        document.getElementById('customerModal').style.display = 'none';
-        document.getElementById('customerRegForm').reset();
+        const data = await response.json();
         
-        updateUIForLoggedInUser();
-    } else {
-        alert('Registration failed. Please try again.');
+        if (!response.ok) {
+            if (response.status === 400 && data.error && data.error.includes('exists')) {
+                alert('An account with this email already exists. Please login.');
+                return;
+            }
+            throw new Error(data.error || 'Failed to register');
+        }
+        
+        // Registration successful
+        if (data.user) {
+            currentUser = { 
+                id: userId, 
+                name, 
+                mobile, 
+                email, 
+                type: 'customer'
+            };
+            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            alert(`Welcome ${name}! You are now registered.`);
+            document.getElementById('customerModal').style.display = 'none';
+            document.getElementById('customerRegForm').reset();
+            
+            updateUIForLoggedInUser();
+        } else {
+            alert('Registration failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert('Error during registration: ' + error.message);
     }
 }
 
@@ -699,9 +785,13 @@ async function handleCustomerRegistration(e) {
 async function handleUnifiedLogin(e) {
     e.preventDefault();
     
+    console.log('🔔 handleUnifiedLogin called');
+    
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const role = document.getElementById('loginRole').value;
+    
+    console.log('Login attempt - Role:', role, 'Email:', email);
     
     if (role === 'admin') {
         // Check admin credentials
@@ -737,7 +827,106 @@ async function handleUnifiedLogin(e) {
         } else {
             alert('Turf owner credentials not found. Please contact admin.');
         }
+    } else if (role === 'customer') {
+        // Customer login with name, mobile, email, and password
+        console.log('📝 Customer login flow initiated');
+        
+        const name = document.getElementById('customerLoginName').value;
+        const mobile = document.getElementById('customerLoginMobile').value;
+        
+        console.log('Customer data:', { name, mobile, email });
+        
+        if (!name || !mobile || !email || !password) {
+            alert('Please fill in all fields');
+            console.log('❌ Validation failed: Missing fields');
+            return;
+        }
+        
+        // Validate mobile number
+        if (!/^[0-9]{10}$/.test(mobile)) {
+            alert('Please enter a valid 10-digit mobile number');
+            console.log('❌ Validation failed: Invalid mobile number');
+            return;
+        }
+        
+        console.log('✅ Validation passed, checking database...');
+        
+        // Check if user exists in database
+        const users = await database.getAllUsers();
+        console.log('📊 Total users in database:', users.length);
+        
+        const existingUser = users.find(u => 
+            u.email === email && 
+            u.mobile === mobile &&
+            u.password === password
+        );
+        
+        console.log('🔍 Existing user found:', !!existingUser);
+        
+        if (existingUser) {
+            // User exists - login successful
+            const userData = {
+                userId: existingUser.userId,
+                name: existingUser.name,
+                email: existingUser.email,
+                mobile: existingUser.mobile,
+                role: 'customer'
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            sessionStorage.setItem('currentUser', JSON.stringify(userData));
+            
+            alert(`Welcome back, ${existingUser.name}! 🎉`);
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('unifiedLoginForm').reset();
+            
+            // Update header if needed
+            updateHeaderLoginState();
+        } else {
+            // User doesn't exist - create new account
+            const userId = 'user_' + Date.now();
+            const newUser = {
+                userId: userId,
+                name: name,
+                email: email,
+                mobile: mobile,
+                password: password,
+                role: 'customer',
+                createdAt: new Date().toISOString()
+            };
+            
+            const saved = await database.saveUser(userId, newUser);
+            
+            if (saved) {
+                const userData = {
+                    userId: userId,
+                    name: name,
+                    email: email,
+                    mobile: mobile,
+                    role: 'customer'
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                sessionStorage.setItem('currentUser', JSON.stringify(userData));
+                
+                alert(`Account created successfully! Welcome, ${name}! 🎉`);
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('unifiedLoginForm').reset();
+                
+                // Update header if needed
+                updateHeaderLoginState();
+            } else {
+                alert('Failed to create account. Please try again.');
+            }
+        }
     }
+}
+
+// Update header login state
+function updateHeaderLoginState() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser'));
+    // You can add code here to update header with user info if needed
+    console.log('User logged in:', currentUser);
 }
 
 // Open booking modal (Playo-style)
@@ -1310,6 +1499,20 @@ function showContactInfo() {
     console.log('🔵 showContactInfo called');
     
     const modal = document.getElementById('contactModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// Show Terms and Conditions modal
+function showTermsAndConditions() {
+    console.log('🔵 showTermsAndConditions called');
+    
+    const modal = document.getElementById('termsModal');
     if (modal) {
         modal.style.display = 'block';
     }

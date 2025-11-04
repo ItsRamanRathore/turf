@@ -1996,6 +1996,7 @@ form button[type="submit"] {
 .footer-section:nth-child(2) { animation-delay: 0.2s; }
 .footer-section:nth-child(3) { animation-delay: 0.3s; }
 .footer-section:nth-child(4) { animation-delay: 0.4s; }
+.footer-section:nth-child(5) { animation-delay: 0.5s; }
 
 @keyframes fadeInUp {
     from {
@@ -2006,5 +2007,401 @@ form button[type="submit"] {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Partner & Newsletter Combined Section */
+.footer-combined-section {
+    margin-top: 40px;
+    padding-top: 40px;
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.combined-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* Partner Info Styles */
+.partner-info {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    padding: 30px;
+    border-radius: 15px;
+    border: 2px solid rgba(79, 172, 254, 0.3);
+    transition: all 0.3s ease;
+}
+
+.partner-info:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+    border-color: rgba(79, 172, 254, 0.6);
+}
+
+.partner-info .footer-title {
+    color: white;
+    font-size: 22px;
+    margin-bottom: 15px;
+}
+
+.partner-description {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    font-style: italic;
+}
+
+.partner-contacts {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.partner-contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.partner-contact-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+.partner-contact-item .contact-icon {
+    font-size: 24px;
+    min-width: 30px;
+}
+
+.partner-contact-item div {
+    flex: 1;
+}
+
+.partner-contact-item strong {
+    display: block;
+    color: #4facfe;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.partner-contact-item a {
+    color: white;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.partner-contact-item a:hover {
+    color: #00f2fe;
+}
+
+.partner-contact-item span {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+/* Newsletter Info Styles */
+.newsletter-info {
+    background: linear-gradient(135deg, rgba(118, 75, 162, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%);
+    padding: 30px;
+    border-radius: 15px;
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.newsletter-info:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.6);
+}
+
+.newsletter-info .footer-title {
+    color: white;
+    font-size: 22px;
+    margin-bottom: 15px;
+}
+
+.newsletter-description {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.newsletter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.newsletter-form input[type="email"] {
+    padding: 14px 18px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+.newsletter-form input[type="email"]::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.newsletter-form input[type="email"]:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+}
+
+.newsletter-form button {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.newsletter-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Mobile responsiveness for combined section */
+@media (max-width: 968px) {
+    .combined-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+}
+
+@media (max-width: 576px) {
+    .partner-info,
+    .newsletter-info {
+        padding: 20px;
+    }
+
+    .partner-info .footer-title,
+    .newsletter-info .footer-title {
+        font-size: 18px;
+    }
+
+    .partner-description,
+    .newsletter-description {
+        font-size: 0.9rem;
+    }
+}
+
+/* Terms and Conditions Modal Styles */
+.terms-modal {
+    max-width: 800px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 40px;
+}
+
+.terms-modal h2 {
+    color: #2c3e50;
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 3px solid #4facfe;
+    padding-bottom: 15px;
+}
+
+.terms-content {
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.terms-intro {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    border-left: 4px solid #4facfe;
+}
+
+.terms-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #4facfe;
+    transition: all 0.3s ease;
+}
+
+.terms-section:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.terms-section h3 {
+    color: #2c3e50;
+    font-size: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.terms-section h3::before {
+    content: "▶";
+    color: #4facfe;
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+.terms-section p {
+    margin-bottom: 10px;
+}
+
+.terms-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.terms-section ul li {
+    padding: 10px 0;
+    padding-left: 30px;
+    position: relative;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.terms-section ul li:last-child {
+    border-bottom: none;
+}
+
+.terms-section ul li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #4facfe;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.terms-section ul li strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.terms-section ul ul {
+    margin-top: 10px;
+    margin-left: 20px;
+}
+
+.terms-section ul ul li {
+    padding: 5px 0;
+    padding-left: 25px;
+    font-size: 0.95em;
+}
+
+.terms-section ul ul li::before {
+    content: "◆";
+    font-size: 12px;
+}
+
+.terms-footer {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    margin-top: 30px;
+    box-shadow: 0 5px 20px rgba(79, 172, 254, 0.3);
+}
+
+.terms-footer p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Scrollbar styling for terms modal */
+.terms-modal::-webkit-scrollbar {
+    width: 10px;
+}
+
+.terms-modal::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.terms-modal::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 10px;
+}
+
+.terms-modal::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+}
+
+/* Mobile responsiveness for terms modal */
+@media (max-width: 768px) {
+    .terms-modal {
+        padding: 20px;
+        max-width: 95%;
+    }
+
+    .terms-modal h2 {
+        font-size: 22px;
+    }
+
+    .terms-section h3 {
+        font-size: 18px;
+    }
+
+    .terms-section {
+        padding: 15px;
+    }
+}
+
+/* Payment Split Display Styles */
+.split-info {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid #4facfe;
+}
+
+.split-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.split-line {
+    display: block;
+    padding: 4px 0;
+    color: #2c3e50;
+}
+
+.split-line:first-child {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.split-line:last-child {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.payment-success-details .split-info .label {
+    font-weight: 600;
+    color: #4facfe;
 }
 

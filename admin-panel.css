@@ -465,13 +465,11 @@ tbody td:first-child {
 }
 
 /* Map Container */
-#adminTurfMap,
-#addTurfMap {
+#adminTurfMap {
     height: 350px;
     border-radius: 12px;
     border: 2px solid #e2e8f0;
     margin-top: 15px;
-    z-index: 1;
 }
 
 /* Status Badges */
