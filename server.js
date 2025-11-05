@@ -1147,9 +1147,23 @@ if (process.env.NODE_ENV !== 'production') {
     
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
+        console.log('\n🛑 Received shutdown signal (SIGINT)');
+        console.log('⏳ Closing MongoDB connection gracefully...');
         await mongoose.connection.close();
-        console.log('MongoDB connection closed');
+        console.log('✅ MongoDB connection closed');
+        console.log('👋 Server stopped');
         process.exit(0);
+    });
+    
+    // Handle uncaught errors
+    process.on('uncaughtException', (error) => {
+        console.error('💥 Uncaught Exception:', error);
+        console.error('Stack:', error.stack);
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('💥 Unhandled Rejection at:', promise);
+        console.error('Reason:', reason);
     });
 } else {
     // For production (Vercel), initialize sample data on cold start
