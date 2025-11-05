@@ -64,12 +64,12 @@ const mongooseOptions = {
     heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
     retryWrites: true,
     retryReads: true,
-    bufferCommands: false, // Disable buffering - fail fast if not connected
+    bufferCommands: true, // Re-enable buffering with longer timeout
     autoIndex: true
 };
 
-// Set global buffer timeout
-mongoose.set('bufferTimeoutMS', 30000); // 30 seconds buffer timeout
+// Set global buffer timeout to 30 seconds (instead of default 10)
+mongoose.set('bufferTimeoutMS', 30000);
 
 // Connect to MongoDB and wait for it to be ready
 async function connectDB() {
@@ -189,8 +189,8 @@ const Booking = mongoose.model('Booking', bookingSchema);
 
 // ==================== USER ROUTES ====================
 
-// Save/Create User with DB connection check
-app.post('/api/users', checkDBConnection, async (req, res) => {
+// Save/Create User
+app.post('/api/users', async (req, res) => {
     try {
         const { userId, ...userData } = req.body;
         
