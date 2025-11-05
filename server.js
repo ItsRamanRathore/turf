@@ -32,9 +32,36 @@ app.get('/', (req, res) => {
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
 
-mongoose.connect(MONGODB_URI)
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+// MongoDB connection options
+const mongooseOptions = {
+    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+    socketTimeoutMS: 45000,
+    maxPoolSize: 10,
+    minPoolSize: 2
+};
+
+mongoose.connect(MONGODB_URI, mongooseOptions)
+.then(() => {
+    console.log('✅ Connected to MongoDB');
+    console.log('📡 Database:', mongoose.connection.name);
+})
+.catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    console.error('💡 Make sure MongoDB is running or check your connection string');
+});
+
+// Handle connection events
+mongoose.connection.on('error', err => {
+    console.error('❌ MongoDB error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('⚠️ MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+    console.log('✅ MongoDB reconnected');
+});
 
 // MongoDB Schemas
 const userSchema = new mongoose.Schema({
@@ -112,18 +139,44 @@ app.post('/api/users', async (req, res) => {
     try {
         const { userId, ...userData } = req.body;
         
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: userData.email });
+        console.log('📝 Creating user:', userData.email);
+        
+        // Check if user already exists with timeout
+        const existingUser = await User.findOne({ email: userData.email })
+            .maxTimeMS(5000) // 5 second timeout for query
+            .lean(); // Use lean for faster queries
+            
         if (existingUser) {
+            console.log('⚠️ User already exists:', userData.email);
             return res.status(400).json({ error: 'User with this email already exists' });
         }
         
+        console.log('✅ Creating new user...');
         const user = new User({ userId, ...userData });
         await user.save();
+        
+        console.log('✅ User created successfully:', userData.email);
         res.json({ success: true, user });
     } catch (error) {
-        console.error('Error saving user:', error);
-        res.status(500).json({ error: error.message });
+        console.error('❌ Error saving user:', error.message);
+        
+        // Handle specific MongoDB errors
+        if (error.name === 'MongoTimeoutError') {
+            return res.status(504).json({ 
+                error: 'Database timeout. Please try again.',
+                details: 'The database is taking too long to respond'
+            });
+        }
+        
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                error: 'User with this email already exists'
+            });
+        }
+        
+        res.status(500).json({ 
+            error: error.message || 'Failed to create user'
+        });
     }
 });
 
