@@ -731,6 +731,11 @@ async function handleCustomerRegistration(e) {
     // Check if user already exists and create user via API
     try {
         const userId = 'user_' + Date.now();
+        
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
         const response = await fetch('/api/users', {
             method: 'POST',
             headers: {
@@ -743,8 +748,11 @@ async function handleCustomerRegistration(e) {
                 email, 
                 password, // In production, hash this!
                 type: 'customer'
-            })
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId); // Clear timeout if request succeeds
         
         const data = await response.json();
         
@@ -777,7 +785,17 @@ async function handleCustomerRegistration(e) {
         }
     } catch (error) {
         console.error('Registration error:', error);
-        alert('Error during registration: ' + error.message);
+        
+        // Handle different error types
+        if (error.name === 'AbortError') {
+            alert('⏱️ Request timeout (15 seconds).\n\nThe server is taking too long to respond. This might be due to:\n• Slow internet connection\n• MongoDB Atlas connection issues\n• Server overload\n\nPlease try again in a few moments.');
+        } else if (error.message && error.message.includes('timeout')) {
+            alert('⏱️ Connection timeout. The database is taking too long to respond.\n\nPlease:\n1. Check your internet connection\n2. Try again in a few moments\n3. If problem persists, contact support');
+        } else if (error.message && error.message.includes('Failed to fetch')) {
+            alert('❌ Cannot connect to server. Please check if the server is running on http://localhost:3000');
+        } else {
+            alert('Error during registration: ' + error.message);
+        }
     }
 }
 

@@ -29,6 +29,28 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+    try {
+        const start = Date.now();
+        await mongoose.connection.db.admin().ping();
+        const responseTime = Date.now() - start;
+        
+        res.json({ 
+            status: 'healthy',
+            database: 'connected',
+            responseTime: `${responseTime}ms`,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'unhealthy',
+            database: 'disconnected',
+            error: error.message
+        });
+    }
+});
+
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
 
@@ -37,7 +59,11 @@ const mongooseOptions = {
     serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
     socketTimeoutMS: 45000,
     maxPoolSize: 10,
-    minPoolSize: 2
+    minPoolSize: 2,
+    maxIdleTimeMS: 30000,
+    heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
+    retryWrites: true,
+    retryReads: true
 };
 
 mongoose.connect(MONGODB_URI, mongooseOptions)
@@ -56,11 +82,16 @@ mongoose.connection.on('error', err => {
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('⚠️ MongoDB disconnected');
+    console.log('⚠️ MongoDB disconnected. Attempting to reconnect...');
+    // Don't exit - let mongoose auto-reconnect
 });
 
 mongoose.connection.on('reconnected', () => {
     console.log('✅ MongoDB reconnected');
+});
+
+mongoose.connection.on('close', () => {
+    console.log('🔌 MongoDB connection closed');
 });
 
 // MongoDB Schemas
