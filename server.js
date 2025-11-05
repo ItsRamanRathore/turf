@@ -63,18 +63,30 @@ const mongooseOptions = {
     maxIdleTimeMS: 30000,
     heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
     retryWrites: true,
-    retryReads: true
+    retryReads: true,
+    bufferCommands: false, // Disable buffering - fail fast if not connected
+    autoIndex: true
 };
 
-mongoose.connect(MONGODB_URI, mongooseOptions)
-.then(() => {
-    console.log('✅ Connected to MongoDB');
-    console.log('📡 Database:', mongoose.connection.name);
-})
-.catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    console.error('💡 Make sure MongoDB is running or check your connection string');
-});
+// Set global buffer timeout
+mongoose.set('bufferTimeoutMS', 30000); // 30 seconds buffer timeout
+
+// Connect to MongoDB and wait for it to be ready
+async function connectDB() {
+    try {
+        await mongoose.connect(MONGODB_URI, mongooseOptions);
+        console.log('✅ Connected to MongoDB');
+        console.log('📡 Database:', mongoose.connection.name);
+        console.log('🔗 Connection state:', mongoose.connection.readyState, '(1 = connected)');
+    } catch (err) {
+        console.error('❌ MongoDB connection error:', err);
+        console.error('💡 Make sure MongoDB is running or check your connection string');
+        // Don't exit - let it retry
+    }
+}
+
+// Initialize connection
+connectDB();
 
 // Handle connection events
 mongoose.connection.on('error', err => {
@@ -93,6 +105,18 @@ mongoose.connection.on('reconnected', () => {
 mongoose.connection.on('close', () => {
     console.log('🔌 MongoDB connection closed');
 });
+
+// Middleware to check MongoDB connection
+const checkDBConnection = (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        console.error('❌ MongoDB not connected. State:', mongoose.connection.readyState);
+        return res.status(503).json({ 
+            error: 'Database is not connected. Please try again in a moment.',
+            state: mongoose.connection.readyState 
+        });
+    }
+    next();
+};
 
 // MongoDB Schemas
 const userSchema = new mongoose.Schema({
@@ -165,8 +189,8 @@ const Booking = mongoose.model('Booking', bookingSchema);
 
 // ==================== USER ROUTES ====================
 
-// Save/Create User
-app.post('/api/users', async (req, res) => {
+// Save/Create User with DB connection check
+app.post('/api/users', checkDBConnection, async (req, res) => {
     try {
         const { userId, ...userData } = req.body;
         
@@ -1108,9 +1132,17 @@ app.get('*', (req, res) => {
 
 // Start Server (only for local development)
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
         console.log(`🚀 Server running on http://localhost:${PORT}`);
-        initializeSampleData();
+        
+        // Wait for MongoDB connection before initializing data
+        if (mongoose.connection.readyState === 1) {
+            await initializeSampleData();
+        } else {
+            mongoose.connection.once('connected', async () => {
+                await initializeSampleData();
+            });
+        }
     });
     
     // Handle graceful shutdown
@@ -1121,7 +1153,9 @@ if (process.env.NODE_ENV !== 'production') {
     });
 } else {
     // For production (Vercel), initialize sample data on cold start
-    initializeSampleData();
+    mongoose.connection.once('connected', async () => {
+        await initializeSampleData();
+    });
 }
 
 // Export for Vercel
