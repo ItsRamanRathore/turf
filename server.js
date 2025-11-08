@@ -60,111 +60,129 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
+// ============================================================================
+// MongoDB Connection Configuration
+// ============================================================================
 
-// MongoDB connection options optimized for both local and Vercel
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Optimized connection options
 const mongooseOptions = {
-    serverSelectionTimeoutMS: isProduction ? 10000 : 30000,
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
-    maxPoolSize: isProduction ? 5 : 10,
-    minPoolSize: isProduction ? 1 : 2,
-    maxIdleTimeMS: isProduction ? 10000 : 30000,
-    retryWrites: true,
-    retryReads: true,
-    bufferCommands: true, // Enable for better reliability
-    autoIndex: !isProduction // Auto-index in development, not in production
+    family: 4, // Use IPv4, skip trying IPv6
+    maxPoolSize: 10,
+    minPoolSize: 2
 };
 
-// Set global buffer timeout
-mongoose.set('bufferTimeoutMS', isProduction ? 10000 : 30000);
+// Disable buffering and set strict query mode
+mongoose.set('strictQuery', false);
 
-// Cache the database connection for serverless
-let cachedConnection = null;
+// Global connection state
+let isConnecting = false;
+let isConnected = false;
 
-// Connect to MongoDB with caching for Vercel
+// Connect to MongoDB with retry logic
 async function connectDB() {
-    // If already connected, return immediately
-    if (cachedConnection && mongoose.connection.readyState === 1) {
-        console.log('♻️ Using cached MongoDB connection');
-        return cachedConnection;
+    // Return immediately if already connected
+    if (isConnected && mongoose.connection.readyState === 1) {
+        return mongoose.connection;
+    }
+
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting) {
+        console.log('⏳ Connection attempt already in progress...');
+        // Wait for the current connection attempt to complete
+        let attempts = 0;
+        while (isConnecting && attempts < 30) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+        }
+        if (isConnected) return mongoose.connection;
     }
 
     try {
-        console.log('🔌 Connecting to MongoDB...');
-        cachedConnection = await mongoose.connect(MONGODB_URI, mongooseOptions);
-        console.log('✅ Connected to MongoDB');
+        isConnecting = true;
+        console.log('🔌 Connecting to MongoDB Atlas...');
+        
+        await mongoose.connect(MONGODB_URI, mongooseOptions);
+        
+        isConnected = true;
+        isConnecting = false;
+        
+        console.log('✅ MongoDB connected successfully');
         console.log('📡 Database:', mongoose.connection.name);
-        return cachedConnection;
-    } catch (err) {
-        console.error('❌ MongoDB connection error:', err.message);
-        cachedConnection = null;
-        throw err; // Throw error for serverless to handle
+        console.log('🌐 Host:', mongoose.connection.host);
+        
+        return mongoose.connection;
+    } catch (error) {
+        isConnecting = false;
+        isConnected = false;
+        console.error('❌ MongoDB connection failed:', error.message);
+        
+        // Retry connection after 5 seconds in production
+        if (isProduction) {
+            console.log('🔄 Retrying connection in 5 seconds...');
+            setTimeout(() => connectDB(), 5000);
+        }
+        
+        throw error;
     }
 }
 
-// Initialize connection for local development only
-if (process.env.NODE_ENV !== 'production') {
-    connectDB();
-}
+// Connection event handlers
+mongoose.connection.on('connected', () => {
+    isConnected = true;
+    console.log('✅ Mongoose connected to MongoDB');
+});
 
-// Handle connection events
-mongoose.connection.on('error', err => {
-    console.error('❌ MongoDB error:', err);
+mongoose.connection.on('error', (err) => {
+    isConnected = false;
+    console.error('❌ Mongoose connection error:', err.message);
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('⚠️ MongoDB disconnected. Attempting to reconnect...');
-    // Don't exit - let mongoose auto-reconnect
+    isConnected = false;
+    console.log('⚠️ Mongoose disconnected from MongoDB');
+    
+    // Auto-reconnect in production
+    if (isProduction && !isConnecting) {
+        console.log('🔄 Attempting to reconnect...');
+        setTimeout(() => connectDB(), 5000);
+    }
 });
 
-mongoose.connection.on('reconnected', () => {
-    console.log('✅ MongoDB reconnected');
+// Initialize connection
+connectDB().catch(err => {
+    console.error('Failed to connect to MongoDB:', err.message);
 });
 
-mongoose.connection.on('close', () => {
-    console.log('🔌 MongoDB connection closed');
-});
+// Middleware to ensure database connection
+async function ensureDBConnection(req, res, next) {
+    // If already connected, proceed
+    if (isConnected && mongoose.connection.readyState === 1) {
+        return next();
+    }
 
-// Middleware to ensure MongoDB connection (especially for Vercel serverless)
-const ensureDBConnection = async (req, res, next) => {
     try {
-        // Check if connected
-        if (mongoose.connection.readyState === 1) {
-            return next();
-        }
-        
-        // Check if connecting
-        if (mongoose.connection.readyState === 2) {
-            console.log('⏳ Database connection in progress, waiting...');
-            // Wait for connection
-            await new Promise((resolve, reject) => {
-                mongoose.connection.once('connected', resolve);
-                mongoose.connection.once('error', reject);
-                setTimeout(() => reject(new Error('Connection timeout')), 15000);
-            });
-            return next();
-        }
-        
-        // Try to connect if disconnected
-        console.log('🔄 Database not connected, attempting connection...');
+        // Try to connect
         await connectDB();
         next();
     } catch (error) {
-        console.error('❌ Failed to connect to database:', error.message);
-        return res.status(503).json({ 
-            error: 'Database connection failed. Please try again.',
-            details: error.message
+        console.error('Failed to establish database connection:', error.message);
+        return res.status(503).json({
+            error: 'Database service unavailable',
+            message: 'Unable to connect to database. Please try again later.',
+            details: isProduction ? undefined : error.message
         });
     }
-};
+}
 
-// Apply DB connection middleware to all API routes except health check
+// Apply middleware to all API routes except health check
 app.use('/api', (req, res, next) => {
     if (req.path === '/health') {
-        return next(); // Skip DB check for health endpoint
+        return next();
     }
     return ensureDBConnection(req, res, next);
 });
@@ -247,41 +265,53 @@ app.post('/api/users', async (req, res) => {
         
         console.log('📝 Creating user:', userData.email);
         
-        // Check if user already exists with timeout
-        const existingUser = await User.findOne({ email: userData.email })
-            .maxTimeMS(5000) // 5 second timeout for query
-            .lean(); // Use lean for faster queries
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: userData.email }).lean();
             
         if (existingUser) {
             console.log('⚠️ User already exists:', userData.email);
-            return res.status(400).json({ error: 'User with this email already exists' });
+            return res.status(400).json({ 
+                error: 'User with this email already exists' 
+            });
         }
         
+        // Create new user
         console.log('✅ Creating new user...');
         const user = new User({ userId, ...userData });
         await user.save();
         
         console.log('✅ User created successfully:', userData.email);
-        res.json({ success: true, user });
+        res.status(201).json({ 
+            success: true, 
+            user: {
+                userId: user.userId,
+                name: user.name,
+                email: user.email,
+                mobile: user.mobile,
+                type: user.type
+            }
+        });
     } catch (error) {
-        console.error('❌ Error saving user:', error.message);
+        console.error('❌ Error creating user:', error);
         
-        // Handle specific MongoDB errors
-        if (error.name === 'MongoTimeoutError') {
-            return res.status(504).json({ 
-                error: 'Database timeout. Please try again.',
-                details: 'The database is taking too long to respond'
+        // Handle duplicate key error
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                error: 'User with this email or ID already exists'
             });
         }
         
-        if (error.code === 11000) {
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
             return res.status(400).json({ 
-                error: 'User with this email already exists'
+                error: 'Invalid user data',
+                details: error.message
             });
         }
         
         res.status(500).json({ 
-            error: error.message || 'Failed to create user'
+            error: 'Failed to create user',
+            details: isProduction ? undefined : error.message
         });
     }
 });
