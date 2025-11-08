@@ -63,21 +63,23 @@ app.get('/api/health', async (req, res) => {
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
 
-// MongoDB connection options optimized for Vercel
+// MongoDB connection options optimized for both local and Vercel
+const isProduction = process.env.NODE_ENV === 'production';
+
 const mongooseOptions = {
-    serverSelectionTimeoutMS: 10000, // 10 seconds - faster for Vercel
+    serverSelectionTimeoutMS: isProduction ? 10000 : 30000,
     socketTimeoutMS: 45000,
-    maxPoolSize: 5, // Reduced for serverless
-    minPoolSize: 1, // Minimum 1 for serverless
-    maxIdleTimeMS: 10000,
+    maxPoolSize: isProduction ? 5 : 10,
+    minPoolSize: isProduction ? 1 : 2,
+    maxIdleTimeMS: isProduction ? 10000 : 30000,
     retryWrites: true,
     retryReads: true,
-    bufferCommands: false, // Disable buffering for immediate errors in serverless
-    autoIndex: false // Disable auto-indexing in production
+    bufferCommands: true, // Enable for better reliability
+    autoIndex: !isProduction // Auto-index in development, not in production
 };
 
-// Set global buffer timeout to 10 seconds for faster failures
-mongoose.set('bufferTimeoutMS', 10000);
+// Set global buffer timeout
+mongoose.set('bufferTimeoutMS', isProduction ? 10000 : 30000);
 
 // Cache the database connection for serverless
 let cachedConnection = null;
@@ -134,7 +136,19 @@ const ensureDBConnection = async (req, res, next) => {
             return next();
         }
         
-        // Try to connect if not connected
+        // Check if connecting
+        if (mongoose.connection.readyState === 2) {
+            console.log('⏳ Database connection in progress, waiting...');
+            // Wait for connection
+            await new Promise((resolve, reject) => {
+                mongoose.connection.once('connected', resolve);
+                mongoose.connection.once('error', reject);
+                setTimeout(() => reject(new Error('Connection timeout')), 15000);
+            });
+            return next();
+        }
+        
+        // Try to connect if disconnected
         console.log('🔄 Database not connected, attempting connection...');
         await connectDB();
         next();
