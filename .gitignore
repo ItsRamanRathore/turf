@@ -12,9 +12,10 @@ test-*.js
 *.backup
 *.old
 
-# Large media files
-*.mp4
+# Large media files (exclude all except turf-hero.mp4)
 *.mov
 *.avi
 *.mkv
 *.wmv
+# Allow turf-hero.mp4 to be committed
+!turf-hero.mp4

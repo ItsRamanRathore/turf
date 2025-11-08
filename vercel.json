@@ -9,6 +9,10 @@
       }
     },
     {
+      "src": "turf-hero.mp4",
+      "use": "@vercel/static"
+    },
+    {
       "src": "*.html",
       "use": "@vercel/static"
     },
@@ -23,6 +27,10 @@
   ],
   "routes": [
     {
+      "src": "/turf-hero.mp4",
+      "dest": "/turf-hero.mp4"
+    },
+    {
       "src": "/(.*\\.css)",
       "dest": "/$1"
     },
@@ -35,7 +43,7 @@
       "dest": "/$1"
     },
     {
-      "src": "/(.*\\.(mp4|jpg|jpeg|png|gif|svg|ico))",
+      "src": "/(.*\\.(jpg|jpeg|png|gif|svg|ico))",
       "dest": "/$1"
     },
     {
