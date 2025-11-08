@@ -32,20 +32,29 @@ app.get('/', (req, res) => {
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
     try {
-        const start = Date.now();
-        await mongoose.connection.db.admin().ping();
-        const responseTime = Date.now() - start;
+        const connectionState = mongoose.connection.readyState;
+        const stateNames = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+        
+        // Only ping if connected
+        let responseTime = null;
+        if (connectionState === 1) {
+            const start = Date.now();
+            await mongoose.connection.db.admin().ping();
+            responseTime = Date.now() - start;
+        }
         
         res.json({ 
-            status: 'healthy',
-            database: 'connected',
-            responseTime: `${responseTime}ms`,
+            status: connectionState === 1 ? 'healthy' : 'unhealthy',
+            database: stateNames[connectionState] || 'unknown',
+            connectionState: connectionState,
+            responseTime: responseTime ? `${responseTime}ms` : 'N/A',
+            mongoUri: process.env.MONGODB_URI ? 'configured' : 'missing',
             timestamp: new Date().toISOString()
         });
     } catch (error) {
         res.status(500).json({ 
             status: 'unhealthy',
-            database: 'disconnected',
+            database: 'error',
             error: error.message
         });
     }
@@ -54,39 +63,50 @@ app.get('/api/health', async (req, res) => {
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turfbooking';
 
-// MongoDB connection options
+// MongoDB connection options optimized for Vercel
 const mongooseOptions = {
-    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+    serverSelectionTimeoutMS: 10000, // 10 seconds - faster for Vercel
     socketTimeoutMS: 45000,
-    maxPoolSize: 10,
-    minPoolSize: 2,
-    maxIdleTimeMS: 30000,
-    heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
+    maxPoolSize: 5, // Reduced for serverless
+    minPoolSize: 1, // Minimum 1 for serverless
+    maxIdleTimeMS: 10000,
     retryWrites: true,
     retryReads: true,
-    bufferCommands: true, // Re-enable buffering with longer timeout
-    autoIndex: true
+    bufferCommands: false, // Disable buffering for immediate errors in serverless
+    autoIndex: false // Disable auto-indexing in production
 };
 
-// Set global buffer timeout to 30 seconds (instead of default 10)
-mongoose.set('bufferTimeoutMS', 30000);
+// Set global buffer timeout to 10 seconds for faster failures
+mongoose.set('bufferTimeoutMS', 10000);
 
-// Connect to MongoDB and wait for it to be ready
+// Cache the database connection for serverless
+let cachedConnection = null;
+
+// Connect to MongoDB with caching for Vercel
 async function connectDB() {
+    // If already connected, return immediately
+    if (cachedConnection && mongoose.connection.readyState === 1) {
+        console.log('♻️ Using cached MongoDB connection');
+        return cachedConnection;
+    }
+
     try {
-        await mongoose.connect(MONGODB_URI, mongooseOptions);
+        console.log('🔌 Connecting to MongoDB...');
+        cachedConnection = await mongoose.connect(MONGODB_URI, mongooseOptions);
         console.log('✅ Connected to MongoDB');
         console.log('📡 Database:', mongoose.connection.name);
-        console.log('🔗 Connection state:', mongoose.connection.readyState, '(1 = connected)');
+        return cachedConnection;
     } catch (err) {
-        console.error('❌ MongoDB connection error:', err);
-        console.error('💡 Make sure MongoDB is running or check your connection string');
-        // Don't exit - let it retry
+        console.error('❌ MongoDB connection error:', err.message);
+        cachedConnection = null;
+        throw err; // Throw error for serverless to handle
     }
 }
 
-// Initialize connection
-connectDB();
+// Initialize connection for local development only
+if (process.env.NODE_ENV !== 'production') {
+    connectDB();
+}
 
 // Handle connection events
 mongoose.connection.on('error', err => {
@@ -106,17 +126,34 @@ mongoose.connection.on('close', () => {
     console.log('🔌 MongoDB connection closed');
 });
 
-// Middleware to check MongoDB connection
-const checkDBConnection = (req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
-        console.error('❌ MongoDB not connected. State:', mongoose.connection.readyState);
+// Middleware to ensure MongoDB connection (especially for Vercel serverless)
+const ensureDBConnection = async (req, res, next) => {
+    try {
+        // Check if connected
+        if (mongoose.connection.readyState === 1) {
+            return next();
+        }
+        
+        // Try to connect if not connected
+        console.log('🔄 Database not connected, attempting connection...');
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error('❌ Failed to connect to database:', error.message);
         return res.status(503).json({ 
-            error: 'Database is not connected. Please try again in a moment.',
-            state: mongoose.connection.readyState 
+            error: 'Database connection failed. Please try again.',
+            details: error.message
         });
     }
-    next();
 };
+
+// Apply DB connection middleware to all API routes except health check
+app.use('/api', (req, res, next) => {
+    if (req.path === '/health') {
+        return next(); // Skip DB check for health endpoint
+    }
+    return ensureDBConnection(req, res, next);
+});
 
 // MongoDB Schemas
 const userSchema = new mongoose.Schema({

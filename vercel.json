@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "server.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
     },
     {
       "src": "*.html",
@@ -15,10 +18,6 @@
     },
     {
       "src": "*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.mp4",
       "use": "@vercel/static"
     }
   ],
