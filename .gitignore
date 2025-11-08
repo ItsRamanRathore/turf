@@ -4,7 +4,17 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Large media files (optional - uncomment to exclude video)
-# *.mp4
-# *.mov
-# *.avi
+# Test and temporary files
+test-*.js
+*-test.js
+*.tmp
+*.bak
+*.backup
+*.old
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
